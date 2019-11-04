@@ -736,8 +736,8 @@ process (clk, Reset, exe_opcode, exe_datatype, Flags, last_data_read, OP2out, fl
 		if exec(directCCR) = '1' then
 		  Flags(7 downto 0) <= data_read(7 downto 0);
 		end if;
-
-		if exec(opcROT) = '1' then
+            
+		if exec(opcROT) = '1' and decodeOPC = '0' then
 		  asl_VFlag <= ((set_flags(3) xor rot_rot) OR asl_VFlag);
 		else
 		  asl_VFlag <= '0';
