@@ -1664,75 +1664,82 @@ PROCESS (clk, IPL, setstate, state, exec_write_back, set_direct_data, next_micro
 
 		-- 0001, 0010, 0011 -----------------------------------------------------------------
 	  when "0001" | "0010" | "0011" => --move.b, move.l, move.w
-		set_exec(opcMOVE) <= '1';
-		ea_build_now <= '1';
-		if opcode(8 downto 6) = "001" then
-		  set(no_Flags) <= '1';
-		end if;
-		if opcode(5 downto 4) = "00" then --Dn, An
-		  if opcode(8 downto 7) = "00" then
-			set_exec(Regwrena) <= '1';
+		if ((opcode(8 downto 6) = "111" and opcode(11 downto 10) /= "00") -- illegal dest ea
+			or (opcode(5 downto 2) = "1111" and opcode(1 downto 0) /= "00") -- illegal src ea
+			or (opcode(13) = '0' and (opcode(5 downto 3) = "001" or opcode(8 downto 6) = "001"))) then -- byte src address reg direct, byte movea
+		  trap_illegal <= '1';
+		  trapmake <= '1';
+		else
+		  set_exec(opcMOVE) <= '1';
+		  ea_build_now <= '1';
+		  if opcode(8 downto 6) = "001" then
+			set(no_Flags) <= '1';
 		  end if;
-		end if;
-		case opcode(13 downto 12) is
-		  when "01" => datatype <= "00"; --Byte
-		  when "10" => datatype <= "10"; --Long
-		  when others => datatype <= "01"; --Word
-		end case;
-		source_lowbits <= '1'; -- Dn=> An=>
-		if opcode(3) = '1' then
-		  source_areg <= '1';
-		end if;
-
-		if nextpass = '1' or opcode(5 downto 4) = "00" then
-		  dest_hbits <= '1';
-		  if opcode(8 downto 6) /= "000" then
-			dest_areg <= '1';
-		  end if;
-		end if;
-		-- if setstate="10" then
-		-- set(update_ld) <= '0';
-		-- end if;
-		--
-		if micro_state = idle and (nextpass = '1' or (opcode(5 downto 4) = "00" and decodeOPC = '1')) then
-		  case opcode(8 downto 6) is --destination
-			when "000" | "001" => --Dn,An
+		  if opcode(5 downto 4) = "00" then --Dn, An
+			if opcode(8 downto 7) = "00" then
 			  set_exec(Regwrena) <= '1';
-			when "010" | "011" | "100" => --destination -(an)+
-			  if opcode(6) = '1' then --(An)+
-				set(postadd) <= '1';
-				if opcode(11 downto 9) = "111" then
-				  set(use_SP) <= '1';
-				end if;
-			  end if;
-			  if opcode(8) = '1' then -- -(An)
-				set(presub) <= '1';
-				if opcode(11 downto 9) = "111" then
-				  set(use_SP) <= '1';
-				end if;
-			  end if;
-			  setstate <= "11";
-			  next_micro_state <= nop;
-			  if nextpass = '0' then
-				set(write_reg) <= '1';
-			  end if;
-			when "101" => --(d16,An)
-			  next_micro_state <= st_dAn1;
-			  -- getbrief <= '1';
-			when "110" => --(d8,An,Xn)
-			  next_micro_state <= st_AnXn1;
-			  getbrief <= '1';
-			when "111" =>
-			  case opcode(11 downto 9) is
-				when "000" => --(xxxx).w
-				  next_micro_state <= st_nn;
-				when "001" => --(xxxx).l
-				  set(longaktion) <= '1';
-				  next_micro_state <= st_nn;
-				when others => NULL;
-			  end case;
-			when others => NULL;
+			end if;
+		  end if;
+		  case opcode(13 downto 12) is
+			when "01" => datatype <= "00"; --Byte
+			when "10" => datatype <= "10"; --Long
+			when others => datatype <= "01"; --Word
 		  end case;
+		  source_lowbits <= '1'; -- Dn=> An=>
+		  if opcode(3) = '1' then
+			source_areg <= '1';
+		  end if;
+
+		  if nextpass = '1' or opcode(5 downto 4) = "00" then
+			dest_hbits <= '1';
+			if opcode(8 downto 6) /= "000" then
+			  dest_areg <= '1';
+			end if;
+		  end if;
+		  -- if setstate="10" then
+		  -- set(update_ld) <= '0';
+		  -- end if;
+		  --
+		  if micro_state = idle and (nextpass = '1' or (opcode(5 downto 4) = "00" and decodeOPC = '1')) then
+			case opcode(8 downto 6) is --destination
+			  when "000" | "001" => --Dn,An
+				set_exec(Regwrena) <= '1';
+			  when "010" | "011" | "100" => --destination -(an)+
+				if opcode(6) = '1' then --(An)+
+				  set(postadd) <= '1';
+				  if opcode(11 downto 9) = "111" then
+					set(use_SP) <= '1';
+				  end if;
+				end if;
+				if opcode(8) = '1' then -- -(An)
+				  set(presub) <= '1';
+				  if opcode(11 downto 9) = "111" then
+					set(use_SP) <= '1';
+				  end if;
+				end if;
+				setstate <= "11";
+				next_micro_state <= nop;
+				if nextpass = '0' then
+				  set(write_reg) <= '1';
+				end if;
+			  when "101" => --(d16,An)
+				next_micro_state <= st_dAn1;
+				-- getbrief <= '1';
+			  when "110" => --(d8,An,Xn)
+				next_micro_state <= st_AnXn1;
+				getbrief <= '1';
+			  when "111" =>
+				case opcode(11 downto 9) is
+				  when "000" => --(xxxx).w
+					next_micro_state <= st_nn;
+				  when "001" => --(xxxx).l
+					set(longaktion) <= '1';
+					next_micro_state <= st_nn;
+				  when others => NULL;
+				end case;
+			  when others => NULL;
+			end case;
+		  end if;
 		end if;
 		---- 0100 ----------------------------------------------------------------------------
 	  when "0100" => --rts_group
