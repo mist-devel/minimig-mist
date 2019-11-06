@@ -762,8 +762,10 @@ process (clk, Reset, exe_opcode, exe_datatype, Flags, last_data_read, OP2out, fl
 		  elsif exec(opcDIVU) = '1' and DIV_Mode /= 3 then
 			if V_Flag = '1' then
 			  Flags(3 downto 0) <= "1010";
+			elsif exe_opcode(15) = '1' OR DIV_Mode = 0 then
+			  Flags(3 downto 0) <= OP1IN(15)&flag_z(1) & "00";
 			else
-			  Flags(3 downto 0) <= OP1in(15) & flag_z(1) & "00";
+			  Flags(3 downto 0) <= OP1IN(31)&flag_z(2) & "00";
 			end if;
 		  elsif exec(write_reminder) = '1' and MUL_Mode /= 3 then -- z-flag MULU.l
 			Flags(3) <= set_flags(3);
