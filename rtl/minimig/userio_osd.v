@@ -76,7 +76,6 @@ reg   [4:0] t_chipset_config = 0;
 
 // configuration changes only while reset is active
 always @(posedge clk)
-  if (clk7_en) begin
     if (reset)
     begin
       chipset_config <= t_chipset_config;
@@ -84,7 +83,6 @@ always @(posedge clk)
       cpu_config[1:0] <= t_cpu_config[1:0];
       memory_config[5:0] <= t_memory_config[5:0];
     end
-  end
 
 always @(posedge clk) begin
   if (clk7_en) begin
