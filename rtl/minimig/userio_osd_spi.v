@@ -16,8 +16,6 @@
 module userio_osd_spi
 (
 	input 	clk,		    //pixel clock
-  input clk7_en,
-  input clk7n_en,
 	input	_scs,			//SPI chip select
 	input	sdi,		  	//SPI data in
 	output	sdo,	 		//SPI data out
@@ -25,8 +23,7 @@ module userio_osd_spi
 	input	[7:0] in,		//parallel input data
 	output reg	[7:0] out,		//parallel output data
 	output	reg rx,		//byte received
-	output	reg cmd,		//first byte received
-  output  vld     // valid
+	output	reg cmd		//first byte received
 );
 
 
@@ -39,49 +36,27 @@ reg new_byte;			//new byte (8 bits) received
 reg rx_sync;			//synchronization to clk (first stage)
 reg first_byte;		//first byte is going to be received
 
-// spi valid synchronizers
-reg spi_valid=0, spi_valid_sync=0;
-always @ (posedge clk) begin
-  if (clk7_en) begin
-    {spi_valid, spi_valid_sync} <= #1 {spi_valid_sync, ~_scs};
-  end
-end
-
-assign vld = spi_valid;
-
-//------ input shift register ------//
-always @(posedge sck)
-		sdi_reg <= #1 {sdi_reg[6:0],sdi};
-
-always @(posedge sck)
-    if (bit_cnt==7)
-      out <= #1 {sdi_reg[6:0],sdi};
-
-//------ receive bit counter ------//
+//------ SPI bit counter ------//
 always @(posedge sck or posedge _scs)
 	if (_scs)
-		bit_cnt <= #1 0;					//always clear bit counter when CS is not active
+		bit_cnt <= 0;                 //always clear bit counter when CS is not active
 	else
-		bit_cnt <= #1 bit_cnt + 3'd1;		//increment bit counter when new bit has been received
+		bit_cnt <= bit_cnt + 1'd1;    //increment bit counter when new bit has been received
+
+//------ input shift register ------//
+always @(posedge sck) begin
+	sdi_reg <= #1 {sdi_reg[6:0],sdi};
+	if (bit_cnt==7) new_byte <= ~new_byte;
+end
 
 //----- rx signal ------//
-//this signal goes high for one clk clock period just after new byte has been received
-//it's synchronous with clk, output data shouldn't change when rx is active
-always @(posedge sck or posedge rx)
-	if (rx)
-		new_byte <= #1 0;		//cleared asynchronously when rx is high (rx is synchronous with clk)
-	else if (bit_cnt == 3'd7)
-		new_byte <= #1 1;		//set when last bit of a new byte has been just received
-
-always @(posedge clk)
-  if (clk7n_en) begin
-	  rx_sync <= #1 new_byte;	//double synchronization to avoid metastability
-  end
-
-always @(posedge clk)
-  if (clk7_en) begin
-  	rx <= #1 rx_sync;			//synchronous with clk
-  end
+//this signal toggles just after new byte has been received
+//synchronized to clk
+always @(posedge clk) begin
+	rx_sync <= new_byte;
+	rx <= rx_sync;
+	if (rx ^ rx_sync) out <= sdi_reg;
+end
 
 //------ cmd signal generation ------//
 //this signal becomes active after reception of first byte
@@ -108,4 +83,3 @@ assign sdo = ~_scs & sdo_reg[7];	//force zero if SPI not selected
 
 
 endmodule
-

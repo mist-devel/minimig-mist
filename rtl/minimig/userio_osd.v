@@ -57,8 +57,6 @@ reg 	[10:0] wraddr;			//osd buffer write address
 wire	[7:0] wrdat;			//osd buffer write data
 wire	wren;					//osd buffer write enable
 
-reg		[3:0] highlight;		//highlighted line number
-reg		invert;					//invertion of highlighted line
 reg		[5:0] vpos;
 reg		vena;
 
@@ -165,19 +163,10 @@ always @(posedge clk)
     
 assign osdframe = vframe & hframe & osd_enabled;
 
-always @(posedge clk)
-  if (clk7_en) begin
-    if (~highlight[3] && verbeam_osdclk[5:3]==highlight[2:0] && !verbeam_osdclk[6])
-  		invert <= 1;
-  	else if (verbeam[0])
-  		invert <= 0;
-  end
-
-
 //--------------------------------------------------------------------------------------
 
 //assign osd blank and pixel outputs
-assign osd_pixel = invert ^ (vena & bufout[vpos[2:0]]);
+assign osd_pixel = vena & bufout[vpos[2:0]];
 assign osd_blank = osdframe;
 
 
@@ -202,37 +191,28 @@ always @(posedge clk)//output part
 //--------------------------------------------------------------------------------------
 //interface to host
 //--------------------------------------------------------------------------------------
-wire	rx;
-wire	cmd;
+wire  rx_out;
+reg   rx_out_d;
+wire  rx = rx_out ^ rx_out_d;
+wire  cmd;
 reg   wrcmd;    // spi write command
-wire  vld;
-reg   vld_d;
-wire  spi_invalidate;
 wire [7:0] rddat;
 
 //instantiate spi interface
 userio_osd_spi spi0
 (
 	.clk(clk),
-  .clk7_en(clk7_en),
-  .clk7n_en(clk7n_en),
 	._scs(_scs),
 	.sdi(sdi),
 	.sdo(sdo),
 	.sck(sck),
 	.in(rddat),
 	.out(wrdat),
-	.rx(rx),
-	.cmd(cmd),
-  .vld(vld)
+	.rx(rx_out),
+	.cmd(cmd)
 );
 
-always @ (posedge clk) begin
-  if (clk7_en) begin
-    vld_d <= #1 vld;
-  end
-end
-assign spi_invalidate = ~vld && vld_d;
+always @ (posedge clk) if (clk7_en) rx_out_d <= rx_out;
 
 // !!! OLD !!! OSD SPI commands:
  // 8'b00000000  NOP
@@ -294,7 +274,6 @@ reg [5:0] cmd_dat = 6'h00;
 always @ (posedge clk) begin
   if (clk7_en) begin
     if (rx && cmd) cmd_dat <= #1 wrdat[7:2];
-    //else if (spi_invalidate) cmd_dat <= #1 8'h00; // TODO!
   end
 end
 
@@ -313,7 +292,7 @@ end
 
 // reg selects
 reg spi_reset_ctrl_sel    = 1'b0;
-reg spi_clock_ctrl_sel    = 1'b0;
+//reg spi_clock_ctrl_sel    = 1'b0;
 reg spi_osd_ctrl_sel      = 1'b0;
 reg spi_chip_cfg_sel      = 1'b0;
 reg spi_cpu_cfg_sel       = 1'b0;
@@ -328,7 +307,7 @@ reg spi_version_sel       = 1'b0;
 reg spi_mem_read_sel      = 1'b0;
 always @ (*) begin
   spi_reset_ctrl_sel   = 1'b0;
-  spi_clock_ctrl_sel   = 1'b0;
+//  spi_clock_ctrl_sel   = 1'b0;
   spi_osd_ctrl_sel     = 1'b0;
   spi_chip_cfg_sel     = 1'b0;
   spi_cpu_cfg_sel      = 1'b0;
@@ -343,7 +322,7 @@ always @ (*) begin
   spi_mem_read_sel     = 1'b0;
   case (cmd_dat)
     SPI_RESET_CTRL_ADR   : spi_reset_ctrl_sel   = 1'b1;
-    SPI_CLOCK_CTRL_ADR   : spi_clock_ctrl_sel   = 1'b1;
+//    SPI_CLOCK_CTRL_ADR   : spi_clock_ctrl_sel   = 1'b1;
     SPI_OSD_CTRL_ADR     : spi_osd_ctrl_sel     = 1'b1;
     SPI_CHIP_CFG_ADR     : spi_chip_cfg_sel     = 1'b1;
     SPI_CPU_CFG_ADR      : spi_cpu_cfg_sel      = 1'b1;
@@ -356,22 +335,7 @@ always @ (*) begin
     SPI_MEM_WRITE_ADR    : spi_mem_write_sel    = 1'b1;
     SPI_VERSION_ADR      : spi_version_sel      = 1'b1;
     SPI_MEM_READ_ADR     : spi_mem_read_sel     = 1'b1;
-    default: begin
-      spi_reset_ctrl_sel   = 1'b0;
-      spi_clock_ctrl_sel   = 1'b0;
-      spi_osd_ctrl_sel     = 1'b0;
-      spi_chip_cfg_sel     = 1'b0;
-      spi_cpu_cfg_sel      = 1'b0;
-      spi_memory_cfg_sel   = 1'b0;
-      spi_video_cfg_sel    = 1'b0;
-      spi_floppy_cfg_sel   = 1'b0;
-      spi_harddisk_cfg_sel = 1'b0;
-      spi_joystick_cfg_sel = 1'b0;
-      spi_osd_buffer_sel   = 1'b0;
-      spi_mem_write_sel    = 1'b0;
-      spi_version_sel      = 1'b0;
-      spi_mem_read_sel     = 1'b0;
-    end
+    default: ;
   endcase
 end
 
@@ -404,20 +368,12 @@ always @ (posedge clk) begin
       if (spi_floppy_cfg_sel)   begin if (dat_cnt == 0) floppy_config <= #1 wrdat[3:0]; end
       if (spi_harddisk_cfg_sel) begin if (dat_cnt == 0) t_ide_config <= #1 wrdat[2:0]; end 
       if (spi_joystick_cfg_sel) begin if (dat_cnt == 0) {cd32pad, autofire_config} <= #1 wrdat[2:0]; end
-      //if (spi_joystick_cfg_sel) begin if (dat_cnt == 0) {autofire_config} <= #1 wrdat[1:0]; end
-  //    if (spi_osd_buffer_sel)   begin if (dat_cnt == 3) highlight <= #1 wrdat[3:0]; end
   //    if (spi_mem_write_sel)    begin if (dat_cnt == 0) end
   //    if (spi_version_sel)      begin if (dat_cnt == 0) end
   //    if (spi_mem_read_sel)     begin if (dat_cnt == 0) end
     end
   end
 end
-
-
-//// resets - temporary TODO!
-//assign usrrst  = rx && !cmd && spi_reset_ctrl_sel && (dat_cnt == 0);
-//assign bootrst = rx && !cmd && spi_reset_ctrl_sel && wrdat[0] && (dat_cnt == 0);
-
 
 // OSD buffer write
 reg wr_en_r = 1'b0;
@@ -443,28 +399,14 @@ always @ (posedge clk) begin
   end
 end
 
-
-// highlight - TODO remove!
-always @ (posedge clk) begin
-  if (clk7_en) begin
-    if (~osd_enable)
-      highlight <= #1 4'b1000;
-    else if (rx && !cmd && spi_osd_buffer_sel && (dat_cnt == 3) && wrdat[4])
-      highlight <= #1 wrdat[3:0];
-  end
-end
-
-
 // memory write
-reg mem_toggle = 1'b0, mem_toggle_d = 1'b0;
+reg mem_toggle = 1'b0;
 always @ (posedge clk) begin
   if (clk7_en) begin
     if (cmd) begin
       mem_toggle <= #1 1'b0;
-      mem_toggle_d <= #1 1'b0;
     end else if (rx && !cmd && spi_mem_write_sel && (dat_cnt == 4)) begin
       mem_toggle <= #1 ~mem_toggle;
-      mem_toggle_d <= #1 mem_toggle;
     end
   end
 end
@@ -574,4 +516,3 @@ assign rddat =  (spi_version_sel)  ? rtl_ver :
 
 
 endmodule
-
