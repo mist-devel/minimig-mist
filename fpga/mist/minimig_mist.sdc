@@ -34,17 +34,16 @@ derive_clock_uncertainty
 
 
 # input delay
-set_input_delay -clock $clk_114 -max 6.4 $sdram_inputs
-set_input_delay -clock $clk_114 -min 3.2 $sdram_inputs
+set_input_delay -clock $clk_sdram -reference_pin [get_ports SDRAM_CLK] -max 6.4 $sdram_inputs
+set_input_delay -clock $clk_sdram -reference_pin [get_ports SDRAM_CLK] -min 3.2 $sdram_inputs
 
 #output delay
-set_output_delay -clock $clk_sdram -max  1.5 [get_ports SDRAM_CLK]
-set_output_delay -clock $clk_sdram -min -0.8 [get_ports SDRAM_CLK]
-set_output_delay -clock $clk_114 -max  1.5 $sdram_outputs
-set_output_delay -clock $clk_114 -min -0.8 $sdram_outputs
+set_output_delay -clock $clk_sdram -reference_pin [get_ports SDRAM_CLK] -max  1.5 $sdram_outputs
+set_output_delay -clock $clk_sdram -reference_pin [get_ports SDRAM_CLK] -min -0.8 $sdram_outputs
 
 
 # false paths
+set_false_path -from * -to [get_ports {SDRAM_CLK}]
 set_false_path -from * -to [get_ports {LED}]
 set_false_path -from * -to [get_ports {UART_TX}]
 set_false_path -from [get_ports {UART_RX}] -to *
@@ -60,6 +59,8 @@ set_multicycle_path -from {TG68K:tg68k|TG68KdotC_Kernel:pf68K_Kernel_inst|*} -ho
 
 set_multicycle_path -from [get_clocks $clk_28] -to [get_clocks $clk_114] -setup 4
 set_multicycle_path -from [get_clocks $clk_28] -to [get_clocks $clk_114] -hold 3
+
+set_multicycle_path -from [get_clocks $clk_sdram] -to [get_clocks $clk_114] -setup 2
 
 # JTAG
 set ports [get_ports -nowarn {altera_reserved_tck}]
