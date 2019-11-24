@@ -95,24 +95,8 @@ module ciaa
   input  [7:2] porta_in,   // porta in
   output   [3:0] porta_out,  // porta out
   input  [7:0] portb_in,   // portb in
-  output  kbdrst,        // keyboard reset out
-  inout  kbddat,        // ps2 keyboard data
-  inout  kbdclk,        // ps2 keyboard clock
-  input  keyboard_disabled,  // disable keystrokes
-  input kbd_mouse_strobe,
-  input kms_level,
-  input [1:0] kbd_mouse_type,
-  input [7:0] kbd_mouse_data,
-  output  [7:0] osd_ctrl,    // osd control
-  output  _lmb,
-  output  _rmb,
-  output  [5:0] _joy2,
-  output  aflock,       // auto fire lock
-  output  freeze,        // Action Replay freeze key
-  input  disk_led,      // floppy disk activity LED
-  output [5:0] mou_emu,
-  output [5:0] joy_emu,
-  input hrtmon_en
+  input  key_strobe,     // keyboard data valid
+  input [7:0] key_data   // keyboard data
 );
 
 // local signals
@@ -166,114 +150,23 @@ assign  crb  = (enable && rs==4'hF) ? 1'b1 : 1'b0;
 //----------------------------------------------------------------------------------
 assign data_out = icr_out | tmra_out | tmrb_out | tmrd_out | sdr_out | pb_out | pa_out;
 
-//----------------------------------------------------------------------------------
-// instantiate keyboard module
-//----------------------------------------------------------------------------------
-wire  keystrobe;
-wire  keyack;
-wire  [7:0] keydat;
-reg    [7:0] sdr_latch;
-
-
-`ifdef MINIMIG_PS2_KEYBOARD
-
-wire freeze_out;
-
-ciaa_ps2keyboard  kbd1
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .reset(reset),
-  .ps2kdat(kbddat),
-  .ps2kclk(kbdclk),
-  .leda(~porta_out[1]),  // keyboard joystick LED - num lock
-  .ledb(disk_led),    // disk activity LED - scroll lock
-  .aflock(aflock),
-  .kbdrst(kbdrst),
-  .keydat(keydat[7:0]),
-  .keystrobe(keystrobe),
-  .keyack(keyack),
-  .osd_ctrl(osd_ctrl),
-  ._lmb(_lmb),
-  ._rmb(_rmb),
-  ._joy2(_joy2),
-  .freeze(freeze_out),
-  .mou_emu(mou_emu),
-  .joy_emu(joy_emu)
-);
-
-assign freeze = hrtmon_en && freeze_out;
-
+reg [7:0] sdr_latch;
 // sdr register
-// !!! Amiga receives keycode ONE STEP ROTATED TO THE RIGHT AND INVERTED !!!
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reset)
-      sdr_latch[7:0] <= 8'h00;
-    else if (keystrobe & ~keyboard_disabled)
-      sdr_latch[7:0] <= ~{keydat[6:0],keydat[7]};
-    else if (wr & sdr)
-      sdr_latch[7:0] <= data_in[7:0];
-  end
-
-`else
-//MiST kbd
-
-assign kbdrst = 1'b0;
-assign _lmb = 1'b1;
-assign _rmb = 1'b1;
-assign _joy2 = 6'b11_1111;
-assign joy_emu = 6'b11_1111;
-assign mou_emu = 6'b11_1111;
-reg freeze_reg=0;
-assign freeze = freeze_reg;
-assign aflock = 1'b0;
-
-reg [7:0] osd_ctrl_reg;
-
-reg keystrobe_reg;
-assign keystrobe = keystrobe_reg && ((kbd_mouse_type == 2) || (kbd_mouse_type == 3));
-
-assign osd_ctrl = osd_ctrl_reg;
-
-reg kms_levelD;
-always @(posedge clk) begin
-	if (clk7n_en) begin
-		keystrobe_reg <= 0;
-		kms_levelD <= kms_level;
-		if (kms_level ^ kms_levelD)	keystrobe_reg <= 1;
-	end
-end
-
-// sdr register
-// !!! Amiga receives keycode ONE STEP ROTATED TO THE RIGHT AND INVERTED !!!
 always @(posedge clk) begin
   if (clk7_en) begin
     if (reset) begin
       sdr_latch[7:0] <= 8'h00;
-      osd_ctrl_reg[7:0] <= 8'd0;
-      freeze_reg <= #1 1'b0;
-     end else begin
-      if (keystrobe && (kbd_mouse_type == 2) && ~keyboard_disabled) begin
-        sdr_latch[7:0] <= ~{kbd_mouse_data[6:0],kbd_mouse_data[7]};
-        if (hrtmon_en && (kbd_mouse_data == 8'h5f)) freeze_reg <= #1 1'b1;
-        else freeze_reg <= #1 1'b0;
+    end else begin
+      if (key_strobe) begin
+        sdr_latch[7:0] <= key_data;
       end else if (wr & sdr)
         sdr_latch[7:0] <= data_in[7:0];
-
-      if(keystrobe && ((kbd_mouse_type == 2) || (kbd_mouse_type == 3)))
-        osd_ctrl_reg[7:0] <= kbd_mouse_data;
     end
   end
 end
 
-`endif
-
-
 // sdr register read
 assign sdr_out = (!wr && sdr) ? sdr_latch[7:0] : 8'h00;
-// keyboard acknowledge
-assign keyack = (!wr && sdr) ? 1'b1 : 1'b0;
 
 // serial port transmision in progress
 always @(posedge clk)
@@ -400,7 +293,7 @@ cia_int cnt
   .tb(tb),
   .alrm(alrm),
   .flag(1'b0),
-  .ser(keystrobe & ~keyboard_disabled | ser_tx_irq),
+  .ser(key_strobe | ser_tx_irq),
   .data_in(data_in),
   .data_out(icr_out),
   .irq(irq)

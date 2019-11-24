@@ -433,7 +433,7 @@ reg led_dim;
 
 always @ (posedge clk) begin
   if (_hsync) begin
-    led_cnt <= led_cnt + 1;
+    led_cnt <= led_cnt + 1'd1;
     led_dim <= |led_cnt;
   end
 end
@@ -731,12 +731,44 @@ amber AMBER1
 	._vsync_out(_vsync)
 );
 
+// Amiga keyboard
+wire       key_strobe;
+wire [7:0] key_data;
+
+amiga_keyboard kbd
+(
+	.clk       ( clk ),
+	.clk7_en   ( clk7_en ),
+	.clk7n_en  ( clk7n_en ),
+	.reset     ( reset ),
+	.kbdrst    ( kbdrst ),
+	.kbddat    ( kbddat ),
+	.kbdclk    ( kbdclk ),
+	.kbd_mouse_type( kbd_mouse_type ),
+	.kbd_mouse_strobe( kbd_mouse_strobe ),
+	.kms_level ( kms_level ),
+	.kbd_mouse_data( kbd_mouse_data ), 
+	.keyboard_disabled( keyboard_disabled ),
+	.osd_ctrl  ( osd_ctrl ),
+	._lmb      ( kb_lmb ),
+	._rmb      ( kb_rmb ),
+	._joy2     ( kb_joy2 ),
+	.aflock    ( aflock ),
+	.freeze    ( freeze ),
+	.disk_led  ( disk_led ),
+	.mou_emu   ( mou_emu ),
+	.hrtmon_en ( memory_config[6] ),
+
+	.key_strobe( key_strobe ),
+	.key_data  ( key_data )
+);
+
 //instantiate cia A
 ciaa CIAA1
 (
 	.clk(clk),
-  .clk7_en(clk7_en),
-  .clk7n_en(clk7n_en),
+	.clk7_en(clk7_en),
+	.clk7n_en(clk7n_en),
 	.aen(sel_cia_a),
 	.rd(cpu_rd),
 	.wr(cpu_lwr|cpu_hwr),
@@ -750,23 +782,8 @@ ciaa CIAA1
 	.porta_in({_fire1,_fire0,_ready,_track0,_wprot,_change}),
 	.porta_out({_fire1_dat,_fire0_dat,_led,ovl}),
 	.portb_in({_joy4[0],_joy4[1],_joy4[2],_joy4[3],_joy3[0],_joy3[1],_joy3[2],_joy3[3]}),
-	.kbdrst(kbdrst),
-	.kbddat(kbddat),
-	.kbdclk(kbdclk),
-  .kbd_mouse_type(kbd_mouse_type),
-  .kbd_mouse_strobe(kbd_mouse_strobe),
-  .kms_level(kms_level),
-  .kbd_mouse_data(kbd_mouse_data), 
-  .keyboard_disabled(keyboard_disabled),
-	.osd_ctrl(osd_ctrl),
-  ._lmb(kb_lmb),
-  ._rmb(kb_rmb),
-  ._joy2(kb_joy2),
-  .aflock(aflock),
-	.freeze(freeze),
-	.disk_led(disk_led),
-  .mou_emu (mou_emu),
-  .hrtmon_en (memory_config[6])
+	.key_strobe(key_strobe),
+	.key_data(key_data)
 );
 
 //instantiate cia B
