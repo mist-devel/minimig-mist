@@ -156,7 +156,7 @@ BEGIN
 
   wrd <= wr;
   addr <= cpuaddr;
-  datatg68 <= fromram                         WHEN sel_ram='1' AND sel_nmi_vector='0'
+  datatg68 <= fromram                         WHEN sel_ram='1'
     --ELSE frometh                              WHEN sel_eth='1'
     ELSE autoconfig_data&r_data(11 downto 0)  WHEN sel_autoconfig='1' AND autoconfig_out="01" -- Zorro II RAM autoconfig
     ELSE autoconfig_data2&r_data(11 downto 0) WHEN sel_autoconfig='1' AND autoconfig_out="10" -- Zorro III RAM autoconfig
@@ -167,11 +167,11 @@ BEGIN
   sel_z3ram       <= '1' WHEN (cpuaddr(31 downto 24)=z3ram_base) AND z3ram_ena='1' ELSE '0';
   sel_z2ram       <= '1' WHEN (cpuaddr(31 downto 24) = "00000000") AND ((cpuaddr(23 downto 21) = "001") OR (cpuaddr(23 downto 21) = "010") OR (cpuaddr(23 downto 21) = "011") OR (cpuaddr(23 downto 21) = "100")) AND z2ram_ena='1' ELSE '0';
   --sel_eth         <= '1' WHEN (cpuaddr(31 downto 24) = eth_base) AND eth_cfgd='1' ELSE '0';
-  sel_chipram     <= '1' WHEN (cpuaddr(31 downto 24) = "00000000") AND (cpuaddr(23 downto 21)="000") AND turbochip_ena='1' AND turbochip_d='1' ELSE '0'; --$000000 - $1FFFFF
+  sel_chipram     <= '1' WHEN (cpuaddr(31 downto 24) = "00000000") AND (cpuaddr(23 downto 21)="000") AND turbochip_d='1' ELSE '0'; --$000000 - $1FFFFF
   sel_kick        <= '1' WHEN (cpuaddr(31 downto 24) = "00000000") AND ((cpuaddr(23 downto 19)="11111") OR (cpuaddr(23 downto 19)="11100")) AND state/="11" ELSE '0'; -- $F8xxxx, $E0xxxx
-  sel_kickram     <= '1' WHEN sel_kick='1' AND turbochip_ena='1' AND turbokick_d='1' ELSE '0';
+  sel_kickram     <= '1' WHEN sel_kick='1' AND turbokick_d='1' ELSE '0';
   sel_slow        <= '1' WHEN (cpuaddr(31 downto 24) = "00000000") AND ((cpuaddr(23 downto 20)="1100") OR (cpuaddr(23 downto 19)="11010")) ELSE '0'; -- $C00000 - $D7FFFF
-  sel_slowram     <= '1' WHEN sel_slow='1' AND turbochip_ena='1' AND turbokick_d='1' ELSE '0';
+  sel_slowram     <= '1' WHEN sel_slow='1' AND turbokick_d='1' ELSE '0';
   sel_cart        <= '1' WHEN (cpuaddr(31 downto 24) = "00000000") AND (cpuaddr(23 downto 20)="1010") ELSE '0'; -- $A00000 - $A7FFFF
 
   sel_ram         <= '1' WHEN state/="01" AND sel_nmi_vector='0' AND (
@@ -250,8 +250,8 @@ PROCESS (clk, turbochipram, turbokick) BEGIN
       turbochip_d <= '0';
       turbokick_d <= '0';
     ELSIF state="01" THEN -- No mem access, so safe to switch chipram access mode
-      turbochip_d <= turbochipram;
-      turbokick_d <= turbokick;
+      turbochip_d <= turbochipram and turbochip_ena;
+      turbokick_d <= turbokick and turbochip_ena;
     END IF;
   END IF;
 END PROCESS;
