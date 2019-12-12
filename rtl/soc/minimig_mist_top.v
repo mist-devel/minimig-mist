@@ -9,9 +9,6 @@
 // board type define
 `define MINIMIG_MIST
 
-// new cpu define
-//`define MINIMIG_MIST_NEWCPU
-
 // simulation define
 //`define SOC_SIM
 
@@ -257,48 +254,6 @@ amiga_clk amiga_clk (
 );
 
 
-//// TG68K main CPU ////
-`ifdef MINIMIG_MIST_NEWCPU
-TG68K_SplitClock tg68k (
-  .clk          (clk_114          ),
-  .clk28        (clk_28           ),
-  .reset        (tg68_rst         ),
-  .IPL          (tg68_IPL         ),
-  .dtack        (tg68_dtack       ),
-//  .vpa          (1'b1             ),
-//  .ein          (1'b1             ),
-  .addr         (tg68_adr         ),
-  .data_read    (tg68_dat_in      ),
-  .data_write   (tg68_dat_out     ),
-  .as           (tg68_as          ),
-  .uds          (tg68_uds         ),
-  .lds          (tg68_lds         ),
-  .rw           (tg68_rw          ),
-  .e            (                 ),
-  .vma          (                 ),
-  .wrd          (                 ),
-  .ena7RDreg    (tg68_ena7RD      ),
-  .ena7WRreg    (tg68_ena7WR      ),
-  .enaWRreg     (tg68_enaWR       ),
-  .fromram      (tg68_cout        ),
-  .toram      (tg68_cin        ),
-  .ramready     (tg68_cpuena      ),
-  .cache_valid(cache_valid),
-  .cacheable(tg68_cacheable),
-  .cpu          (cpu_config[1:0]  ),
-  .turbochipram (memcfg[5]&memcfg[4]&turbochipram/*1'b0*//*turbochipram*/     ),
-  .fastramcfg   ({memcfg[5]&memcfg[4],memcfg[5:4]}),
-  .ramaddr      (tg68_cad         ),
-  .cpustate     (tg68_cpustate    ),
-  .nResetOut    (tg68_nrst_out    ),
-  .skipFetch    (                 ),
-  .ramlds       (tg68_clds        ),
-  .ramuds       (tg68_cuds        ),
-  .VBR_out      (tg68_VBR_out     )
-);
-
-`else
-
 TG68K tg68k (
   .clk          (clk_114          ),
   .reset        (tg68_rst         ),
@@ -341,80 +296,6 @@ TG68K tg68k (
   .CACR_out     (tg68_CACR_out    ),
   .VBR_out      (tg68_VBR_out     )
 );
-
-`endif
-
-/*
-//// TG68 main CPU ////
-TG68 tg68 (
-  .clk          (clk_114          ),
-  .reset        (tg68_rst         ),
-  .clkena_in    (1'b1             ),
-  .data_in      (tg68_dat_in      ),
-  .data_out     (tg68_dat_out     ),
-  .IPL          (tg68_IPL         ),
-  .dtack        (tg68_dtack       ),
-  .addr         (tg68_adr         ),
-  .as           (tg68_as          ),
-  .uds          (tg68_uds         ),
-  .lds          (tg68_lds         ),
-  .rw           (tg68_rw          ),
-  .drive_data   (                 ),
-  .enaRDreg     (tg68_ena7RD      ),
-  .enaWRreg     (tg68_ena7WR      )
-);
-*/
-
-
-//// sdram ////
-/*
-sdram_ctrl sdram (
-  // sys
-  .sysclk       (clk_114          ),
-  .reset_in     (sdctl_rst        ),
-  .cache_rst    (tg68_rst         ),
-  .reset_out    (reset_out        ),
-  .cache_ena    (cpu_config[2]    ),
-  // sdram
-  .sdaddr       (SDRAM_A[12:0]    ),
-  .sd_cs        (sdram_cs         ),
-  .ba           (sdram_ba         ),
-  .sd_we        (SDRAM_nWE        ),
-  .sd_ras       (SDRAM_nRAS       ),
-  .sd_cas       (SDRAM_nCAS       ),
-  .dqm          (sdram_dqm        ),
-  .sdata        (SDRAM_DQ         ),
-  // host
-  .host_cs      (1'b0             ),
-  .host_adr     (22'hxxxxxx       ),
-  .host_we      (1'b0             ),
-  .host_bs      (2'bxx            ),
-  .host_wdat    (16'hxxxx         ),
-  .host_rdat    (                 ),
-  .host_ack     (                 ),
-  // chip
-  .chipAddr     ({2'b00, ram_address[21:1]}),
-  .chipL        (_ram_ble         ),
-  .chipU        (_ram_bhe         ),
-  .chipRW       (_ram_we          ),
-  .chip_dma     (_ram_oe          ),
-  .chipWR       (ram_data         ),
-  .chipRD       (ramdata_in       ),
-  .chip48       (chip48           ),
-  // cpu
-  .cpuAddr      (tg68_cad[24:1]   ),
-  .cpustate     (tg68_cpustate    ),
-  .cpuL         (tg68_clds        ),
-  .cpuU         (tg68_cuds        ),
-  .cpu_dma      (tg68_cdma        ),
-  .cpuWR        (tg68_dat_out     ),
-  .cpuRD        (tg68_cout        ),
-  .enaWRreg     (tg68_enaWR       ),
-  .ena7RDreg    (tg68_ena7RD      ),
-  .ena7WRreg    (tg68_ena7WR      ),
-  .cpuena       (tg68_cpuena      )
-);
-*/
 
 //sdram sdram (
 sdram_ctrl sdram (

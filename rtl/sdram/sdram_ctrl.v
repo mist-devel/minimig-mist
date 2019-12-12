@@ -348,9 +348,6 @@ end
 // cpu cache
 ////////////////////////////////////////
 
-`define SDRAM_NEW_CACHE
-
-`ifdef SDRAM_NEW_CACHE
 wire snoop_act;
 assign snoop_act = ((sdram_state==ph2)&&(!chipRW));
 
@@ -378,36 +375,6 @@ cpu_cache_new cpu_cache (
   .snoop_adr        ({1'b0, chipAddr, 1'b0}),       // snoop address
   .snoop_dat_w      (chipWR)                        // snoop write data
 );
-
-`else
-
-//// cpu cache ////
-TwoWayCache mytwc (
-  .clk              (sysclk),
-  .reset            (reset),
-  .cache_rst        (cache_rst),
-  .ready            (),
-  .cpu_addr         ({7'b0000000, cpuAddr_mangled, 1'b0}),
-  .cpu_req          (!cpustate[2]),
-  .cpu_ack          (ccachehit),
-  .cpu_wr_ack       (writebuffer_cache_ack),
-  .cpu_rw           (!cpustate[1] || !cpustate[0]),
-  .cpu_rwl          (cpuL),
-  .cpu_rwu          (cpuU),
-  .data_from_cpu    (cpuWR),
-  .data_to_cpu      (cpuRD),
-  .sdram_addr       (),
-  .data_from_sdram  (sdata_reg),
-  .data_to_sdram    (),
-  .sdram_req        (cache_req),
-  .sdram_fill       (readcache_fill),
-  .sdram_rw         (),
-  .snoop_addr       (20'bxxxxxxxxxxxxxxxxxxxx),
-  .snoop_req        (1'bx)
-);
-
-`endif
-
 
 //// writebuffer ////
 // write buffer, enables CPU to continue while a write is in progress
