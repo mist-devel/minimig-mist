@@ -198,8 +198,9 @@ module minimig
   input kms_level,
   input [1:0] kbd_mouse_type,
   input [7:0] kbd_mouse_data,
-	input	_15khz,				//scandoubler disable
-	output pwrled,				//power led
+  input	_15khz,				//scandoubler disable
+  input no_csync,			// separate sync always
+  output pwrled,				//power led
   inout	msdat,				//PS2 mouse data
 	inout	msclk,				//PS2 mouse clk
 	inout	kbddat,				//PS2 keyboard data
@@ -709,7 +710,8 @@ amber AMBER1
 (		
 	.clk(clk),
 	.dblscan(_15khz && !varbeamen),
-  .varbeamen(varbeamen),
+	.no_csync(no_csync),
+	.varbeamen(varbeamen),
 	.lr_filter(lr_filter),
 	.hr_filter(hr_filter),
 	.scanline(scanline),

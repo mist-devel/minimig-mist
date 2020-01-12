@@ -57,6 +57,7 @@ module amber
   input  wire           clk,            // 28MHz clock
   // config
   input  wire           dblscan,        // enable VGA output (enable scandoubler)
+  input  wire           no_csync,       // always send out separate syncs
   input  wire           varbeamen,      // variable beam enabled
   input  wire [  2-1:0] lr_filter,      // interpolation filter settings for low resolution
   input  wire [  2-1:0] hr_filter,      // interpolation filter settings for high resolution
@@ -344,8 +345,8 @@ wire [  8-1:0] bm_b;
 wire           bm_osd_blank;
 wire           bm_osd_pixel;
 
-assign bm_hsync     = dblscan ? sd_lbuf_o_d[29] : varbeamen ? _hsync_in : ns_csync;
-assign bm_vsync     = dblscan ? _vsync_in       : varbeamen ? _vsync_in : 1'b1;
+assign bm_hsync     = dblscan ? sd_lbuf_o_d[29] : (varbeamen | no_csync) ? _hsync_in : ns_csync;
+assign bm_vsync     = dblscan ? _vsync_in       : (varbeamen | no_csync) ? _vsync_in : 1'b1;
 assign bm_r         = dblscan ? sl_r            : varbeamen ? red_in    : ns_r;
 assign bm_g         = dblscan ? sl_g            : varbeamen ? green_in  : ns_g;
 assign bm_b         = dblscan ? sl_b            : varbeamen ? blue_in   : ns_b;

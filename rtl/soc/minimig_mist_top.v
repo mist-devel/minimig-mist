@@ -212,7 +212,7 @@ assign VGA_G[5:0]       = green_reg[5:0];
 assign VGA_B[5:0]       = blue_reg[5:0];
 
 wire   ypbpr            = core_config[1];
-
+wire   no_csync         = core_config[2];
 
 //// YPbPr video mixer ////
 // Final video mixer
@@ -424,6 +424,7 @@ minimig minimig (
   .kbd_mouse_strobe (kbd_mouse_strobe), // kbd/mouse data strobe
   .kms_level    (kms_level        ),
   ._15khz       (_15khz           ),  // scandoubler disable
+  .no_csync     (no_csync         ),  // no csync
   .pwrled       (led              ),  // power led
   .msdat        (                 ),  // PS2 mouse data
   .msclk        (                 ),  // PS2 mouse clk
