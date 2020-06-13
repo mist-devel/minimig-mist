@@ -47,7 +47,9 @@ module userio (
   input  wire [ 16-1:0] _joy1,              // joystick 1 in (default mouse port)
   input  wire [ 16-1:0] _joy2,              // joystick 2 in (default joystick port)
   input  wire           aflock,             // auto fire lock
-  input  wire [  3-1:0] mouse_btn,
+  input  wire [  3-1:0] mouse0_btn,
+  input  wire [  3-1:0] mouse1_btn,
+  input  wire           mouse_idx,
   input  wire           _lmb,
   input  wire           _rmb,
   input  wire [  6-1:0] mou_emu,
@@ -113,13 +115,17 @@ reg  [15:0] _tjoy2;       // synchronized joystick 2 signals
 reg  [15:0] _djoy2;       // synchronized joystick 2 signals
 wire [15:0] _sjoy2;       // synchronized joystick 2 signals
 reg   [15:0] potreg;      // POTGO write
-wire  [15:0] mouse0dat;      //mouse counters
+wire  [15:0] mouse0dat;      //mouse counters for first mouse
+wire  [15:0] mouse1dat;      //mouse counters for second mouse
 wire  [7:0]  mouse0scr;   // mouse scroller
 reg   [15:0] dmouse0dat;      // docking mouse counters
 reg   [15:0] dmouse1dat;      // docking mouse counters
-wire  _mleft;            //left mouse button
-wire  _mthird;          //middle mouse button
-wire  _mright;          //right mouse buttons
+wire  _mleft0;            //left mouse button
+wire  _mthird0;          //middle mouse button
+wire  _mright0;          //right mouse buttons
+wire  _mleft1;            //left mouse button
+wire  _mthird1;          //middle mouse button
+wire  _mright1;          //right mouse buttons
 reg    joy1enable;          //joystick 1 enable (mouse/joy switch)
 reg    joy2enable;          //joystick 2 enable when no osd
 wire  osd_enable;          // OSD display enable
@@ -166,15 +172,15 @@ always @ (posedge clk) begin
       if (cd32pad && ~joy2_pin5) begin
         potcap[3] <= #1 cd32pad2_reg[7];
       end else begin
-        potcap[3] <= #1 _djoy2[5] & ~(potreg[15] & ~potreg[14]);
+        potcap[3] <= #1 _mright1 & _djoy2[5] & ~(potreg[15] & ~potreg[14]);
       end
       potcap[2] <= #1 joy2_pin5;
       if(joy1enable & cd32pad & ~joy1_pin5) begin
         potcap[1] <= #1 cd32pad1_reg[7];
       end else begin
-        potcap[1] <= #1 _mright & _rmb & _djoy1[5] & ~(potreg[11] & ~potreg[10]);
+        potcap[1] <= #1 _mright0 & _rmb & _djoy1[5] & ~(potreg[11] & ~potreg[10]);
       end
-      potcap[0] <= #1 _mthird & joy1_pin5;
+      potcap[0] <= #1 _mthird0 & joy1_pin5;
     end
   end
 end
@@ -273,12 +279,12 @@ always @ (posedge clk) begin
   end
 end
 
-// port 2 joystick disable in osd
+// port 2 joystick disable in osd or when second mouse left button is pressed
 always @ (posedge clk) begin
   if (clk7_en) begin
-    if (key_disable)
+    if (key_disable || !_mleft1)
       joy2enable <= #1 0;
-    else if (_xjoy2[5:0] == 6'b11_1111)
+    else if (!_xjoy2[4])
       joy2enable <= #1 1;
   end
 end
@@ -316,7 +322,7 @@ end
 // port 1 automatic mouse/joystick switch
 always @ (posedge clk) begin
   if (clk7_en) begin
-    if (!_mleft || reset)//when left mouse button pushed, switch to mouse (default)
+    if (!_mleft0 || reset)//when left mouse button pushed, switch to mouse (default)
       joy1enable = 0;
     else if (!_sjoy1[4])//when joystick 1 fire pushed, switch to joystick
       joy1enable = 1;
@@ -386,8 +392,10 @@ always @(*) begin
     data_out[15:0] = {mouse0dat[15:10] + dmouse0dat[15:10],dmouse0dat[9:8],mouse0dat[7:2] + dmouse0dat[7:2],dmouse0dat[1:0]};
   else if (reg_address_in[8:1]==JOY0DAT[8:1])//read port 1 mouse
     data_out[15:0] = {mouse0dat[15:8] + dmouse0dat[15:8],mouse0dat[7:0] + dmouse0dat[7:0]};
-  else if (reg_address_in[8:1]==JOY1DAT[8:1])//read port 2 joystick
+  else if ((reg_address_in[8:1]==JOY1DAT[8:1]) && joy2enable)//read port 2 joystick
     data_out[15:0] = dmouse1dat;
+  else if (reg_address_in[8:1]==JOY1DAT[8:1])//read port 2 mouse
+    data_out[15:0] = mouse1dat;
   else if (reg_address_in[8:1]==POTINP[8:1])//read mouse and joysticks extra buttons
     data_out[15:0] = {1'b0, potcap[3],
                       1'b0, potcap[2],
@@ -401,8 +409,8 @@ always @(*) begin
 end
 
 // assign fire outputs to cia A
-assign _fire0 = cd32pad && !cd32pad1_reg_load ? fire1_d : _sjoy1[4] & _mleft & _lmb;
-assign _fire1 = cd32pad && !cd32pad2_reg_load ? fire2_d : _sjoy2[4];
+assign _fire0 = cd32pad && !cd32pad1_reg_load ? fire1_d : _sjoy1[4] & _mleft0 & _lmb;
+assign _fire1 = cd32pad && !cd32pad2_reg_load ? fire2_d : _sjoy2[4] & _mleft1;
 
 //JB: some trainers writes to JOYTEST register to reset current mouse counter
 assign test_load = reg_address_in[8:1]==JOYTEST[8:1] ? 1'b1 : 1'b0;
@@ -428,9 +436,9 @@ userio_ps2mouse pm1
   .zcount     (mouse0scr),
   .ycount     (mouse0dat[15:8]),
   .xcount     (mouse0dat[7:0]),
-  ._mleft     (_mleft),
-  ._mthird    (_mthird),
-  ._mright    (_mright),
+  ._mleft     (_mleft0),
+  ._mthird    (_mthird0),
+  ._mright    (_mright0),
   .test_load  (test_load),
   .test_data  (test_data)
 );
@@ -438,32 +446,59 @@ userio_ps2mouse pm1
 `else
 
 //// MiST mouse ////
-reg  [ 7:0] xcount;
-reg  [ 7:0] ycount;
-
+reg  [ 7:0] xcount0, xcount1;
+reg  [ 7:0] ycount0, ycount1;
+reg  [ 7:0] zcount0, zcount1;
+reg         wheel_next; // next byte will be the wheel data
 // mouse counters
 always @(posedge clk) begin
-  if(reset) begin
-      xcount <= #1 8'd0;
-      ycount <= #1 8'd0;
-  end else if (test_load && clk7_en) begin
-    ycount[7:2] <= #1 test_data[15:10];
-    xcount[7:2] <= #1 test_data[7:2];
-  end else if (kbd_mouse_strobe) begin
-    if(kbd_mouse_type == 2'b00)
-      xcount[7:0] <= #1 xcount[7:0] + kbd_mouse_data;
-    else if(kbd_mouse_type == 2'b01)
-      ycount[7:0] <= #1 ycount[7:0] + kbd_mouse_data;
+	if(reset) begin
+		xcount0 <= #1 8'd0;
+		ycount0 <= #1 8'd0;
+		zcount0 <= #1 8'd0;
+		xcount1 <= #1 8'd0;
+		ycount1 <= #1 8'd0;
+		zcount1 <= #1 8'd0;
+	end else if (test_load && clk7_en) begin
+		ycount0[7:2] <= #1 test_data[15:10];
+		xcount0[7:2] <= #1 test_data[7:2];
+	end else if (kbd_mouse_strobe) begin
+		if(kbd_mouse_type == 2'b00) begin
+			wheel_next <= 0;
+			if (!mouse_idx)
+				xcount0[7:0] <= #1 xcount0[7:0] + kbd_mouse_data;
+			else
+				xcount1[7:0] <= #1 xcount1[7:0] + kbd_mouse_data;
+		end else if(kbd_mouse_type == 2'b01) begin
+			if (wheel_next)
+				if (!mouse_idx)
+					zcount0[7:0] <= #1 zcount0[7:0] - kbd_mouse_data;
+				else
+					zcount1[7:0] <= #1 zcount1[7:0] - kbd_mouse_data;
+			else begin
+				wheel_next <= 1;
+				if (!mouse_idx)
+					ycount0[7:0] <= #1 ycount0[7:0] + kbd_mouse_data;
+				else
+					ycount1[7:0] <= #1 ycount1[7:0] + kbd_mouse_data;
+			end
+		end
   end
 end
 
 // output
-assign mouse0dat = {ycount, xcount};
+assign mouse0dat = {ycount0, xcount0};
+assign mouse0scr = zcount0;
+assign mouse1dat = {ycount1, xcount1};
 
 // mouse buttons
-assign _mleft  = ~mouse_btn[0];
-assign _mright = ~mouse_btn[1];
-assign _mthird = ~mouse_btn[2];
+assign _mleft0  = ~mouse0_btn[0];
+assign _mright0 = ~mouse0_btn[1];
+assign _mthird0 = ~mouse0_btn[2];
+
+assign _mleft1  = ~mouse1_btn[0];
+assign _mright1 = ~mouse1_btn[1];
+assign _mthird1 = ~mouse1_btn[2];
 
 `endif
 

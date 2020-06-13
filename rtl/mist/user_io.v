@@ -12,11 +12,13 @@ module user_io(
 	output [15:0] JOY2,
 	output [15:0] JOY3,
 
-	output [2:0] MOUSE_BUTTONS,
+	output [2:0] MOUSE0_BUTTONS,
+	output [2:0] MOUSE1_BUTTONS,
 	output       KBD_MOUSE_STROBE,
 	output       KMS_LEVEL,
 	output [1:0] KBD_MOUSE_TYPE,
 	output [7:0] KBD_MOUSE_DATA,
+	output       MOUSE_IDX,
 
 	output [1:0] BUTTONS,
 	output [1:0] SWITCHES,
@@ -33,7 +35,9 @@ reg           kbd_mouse_strobe;
 reg           kbd_mouse_strobe_level;
 reg [1:0]     kbd_mouse_type;
 reg [7:0]     kbd_mouse_data;
-reg [2:0]     mouse_buttons;
+reg           mouse_idx;
+reg [2:0]     mouse0_buttons;
+reg [2:0]     mouse1_buttons;
 reg [31:0]    joystick_0;
 reg [31:0]    joystick_1;
 reg [31:0]    joystick_2;
@@ -45,11 +49,13 @@ assign JOY1 = joystick_1[15:0];
 assign JOY2 = joystick_2[15:0];
 assign JOY3 = joystick_3[15:0];
 
+assign MOUSE_IDX = mouse_idx; // select mouse
 assign KBD_MOUSE_DATA = kbd_mouse_data; // 8 bit movement data
 assign KBD_MOUSE_TYPE = kbd_mouse_type; // 0=mouse x,1=mouse y, 2=keycode, 3=OSD kbd
 assign KBD_MOUSE_STROBE = kbd_mouse_strobe; // strobe, data valid on rising edge
 assign KMS_LEVEL = kbd_mouse_strobe_level; // level change of kbd_mouse_strobe
-assign MOUSE_BUTTONS = mouse_buttons; // state of the two mouse buttons
+assign MOUSE0_BUTTONS = mouse0_buttons; // state of the two mouse buttons for first mouse
+assign MOUSE1_BUTTONS = mouse1_buttons; // state of the two mouse buttons for second mouse
 
 assign BUTTONS  = but_sw[1:0];
 assign SWITCHES = but_sw[3:2];
@@ -130,7 +136,14 @@ always @(posedge clk_sys) begin
 		if(abyte_cnt == 0) begin
 			acmd <= spi_byte_in;
 			case (spi_byte_in)
-				8'h04: kbd_mouse_type <= 2'b00;  // first mouse axis
+				8'h04, 8'h70: begin
+					kbd_mouse_type <= 2'b00;  // x axis
+					mouse_idx <= 0; // first mouse
+				end
+				8'h71: begin
+					kbd_mouse_type <= 2'b00;  // x axis
+					mouse_idx <= 1; // second mouse
+				end
 				8'h05: kbd_mouse_type <= 2'b10;  // keyboard
 		 		8'h06: kbd_mouse_type <= 2'b11;  // OSD keyboard
 			endcase
@@ -143,7 +156,7 @@ always @(posedge clk_sys) begin
 				8'h62: if (abyte_cnt < 5) joystick_2[(abyte_cnt-1)<<3 +:8] <= spi_byte_in;
 				8'h63: if (abyte_cnt < 5) joystick_3[(abyte_cnt-1)<<3 +:8] <= spi_byte_in;
 				8'h64: if (abyte_cnt < 5) joystick_4[(abyte_cnt-1)<<3 +:8] <= spi_byte_in;
-				8'h04:
+				8'h04, 8'h70, 8'h71:
 				begin
 					if (abyte_cnt == 8'd1) begin
 						kbd_mouse_data <= spi_byte_in;
@@ -155,9 +168,17 @@ always @(posedge clk_sys) begin
 						kbd_mouse_strobe <= 1;
 						kbd_mouse_strobe_level <= ~kbd_mouse_strobe_level;
 						kbd_mouse_type <= 2'b01;
-					end else begin
+					end else if (abyte_cnt == 8'd3) begin
 						// third byte contains the buttons
-						mouse_buttons[2:0] <= spi_byte_in[2:0];
+						if (~mouse_idx)
+							mouse0_buttons[2:0] <= spi_byte_in[2:0];
+						else
+							mouse1_buttons[2:0] <= spi_byte_in[2:0];
+					end else begin
+						// fourth byte contains wheel movement
+						kbd_mouse_data <= spi_byte_in;
+						kbd_mouse_strobe <= 1;
+						kbd_mouse_strobe_level <= ~kbd_mouse_strobe_level;
 					end
 				end
 				8'h05, 8'h06:

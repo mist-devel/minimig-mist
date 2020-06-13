@@ -165,8 +165,10 @@ wire [  16-1:0] joyd;
 wire [  8-1:0] kbd_mouse_data;
 wire           kbd_mouse_strobe;
 wire           kms_level;
+wire           mouse_idx;
 wire [  2-1:0] kbd_mouse_type;
-wire [  3-1:0] mouse_buttons;
+wire [  3-1:0] mouse0_buttons;
+wire [  3-1:0] mouse1_buttons;
 wire [  4-1:0] core_config;
 
 
@@ -361,7 +363,9 @@ user_io user_io(
      .JOY1(joyb),
      .JOY2(joyc),
      .JOY3(joyd),
-     .MOUSE_BUTTONS(mouse_buttons),
+     .MOUSE0_BUTTONS(mouse0_buttons),
+     .MOUSE1_BUTTONS(mouse1_buttons),
+     .MOUSE_IDX(mouse_idx),
      .KBD_MOUSE_DATA(kbd_mouse_data),
      .KBD_MOUSE_TYPE(kbd_mouse_type),
      .KBD_MOUSE_STROBE(kbd_mouse_strobe),
@@ -418,7 +422,9 @@ minimig minimig (
   ._joy4        (~joyd            ),  // joystick 4 [fire7:fire,up,down,left,right]
   .mouse_btn1   (1'b1             ), // mouse button 1
   .mouse_btn2   (1'b1             ), // mouse button 2
-  .mouse_btn    (mouse_buttons    ),  // mouse buttons
+  .mouse0_btn   (mouse0_buttons   ),  // mouse buttons for first mouse
+  .mouse1_btn   (mouse1_buttons   ),  // mouse buttons for second mouse
+  .mouse_idx    (mouse_idx        ),  // mouse index
   .kbd_mouse_data (kbd_mouse_data ),  // mouse direction data, keycodes
   .kbd_mouse_type (kbd_mouse_type ),  // type of data
   .kbd_mouse_strobe (kbd_mouse_strobe), // kbd/mouse data strobe
