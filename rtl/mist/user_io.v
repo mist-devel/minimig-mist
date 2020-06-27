@@ -136,13 +136,9 @@ always @(posedge clk_sys) begin
 		if(abyte_cnt == 0) begin
 			acmd <= spi_byte_in;
 			case (spi_byte_in)
-				8'h04, 8'h70: begin
+				8'h70, 8'h71: begin
 					kbd_mouse_type <= 2'b00;  // x axis
-					mouse_idx <= 0; // first mouse
-				end
-				8'h71: begin
-					kbd_mouse_type <= 2'b00;  // x axis
-					mouse_idx <= 1; // second mouse
+					mouse_idx <= spi_byte_in[0]; // mouse select
 				end
 				8'h05: kbd_mouse_type <= 2'b10;  // keyboard
 		 		8'h06: kbd_mouse_type <= 2'b11;  // OSD keyboard
@@ -156,7 +152,7 @@ always @(posedge clk_sys) begin
 				8'h62: if (abyte_cnt < 5) joystick_2[(abyte_cnt-1)<<3 +:8] <= spi_byte_in;
 				8'h63: if (abyte_cnt < 5) joystick_3[(abyte_cnt-1)<<3 +:8] <= spi_byte_in;
 				8'h64: if (abyte_cnt < 5) joystick_4[(abyte_cnt-1)<<3 +:8] <= spi_byte_in;
-				8'h04, 8'h70, 8'h71:
+				8'h70, 8'h71:
 				begin
 					if (abyte_cnt == 8'd1) begin
 						kbd_mouse_data <= spi_byte_in;
