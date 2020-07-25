@@ -22,7 +22,9 @@ module user_io(
 
 	output [1:0] BUTTONS,
 	output [1:0] SWITCHES,
-	output [3:0] CONF
+	output [3:0] CONF,
+
+	output [63:0] RTC
 );
 
 reg [6:0]     sbuf;
@@ -43,11 +45,13 @@ reg [31:0]    joystick_1;
 reg [31:0]    joystick_2;
 reg [31:0]    joystick_3;
 reg [31:0]    joystick_4;
+reg [63:0]    rtc;
 
 assign JOY0 = joystick_0[15:0];
 assign JOY1 = joystick_1[15:0];
 assign JOY2 = joystick_2[15:0];
 assign JOY3 = joystick_3[15:0];
+assign RTC  = rtc;
 
 assign MOUSE_IDX = mouse_idx; // select mouse
 assign KBD_MOUSE_DATA = kbd_mouse_data; // 8 bit movement data
@@ -183,6 +187,7 @@ always @(posedge clk_sys) begin
 					kbd_mouse_strobe <= 1;
 					kbd_mouse_strobe_level <= ~kbd_mouse_strobe_level;
 				end
+				8'h22: if (abyte_cnt < 9) rtc[(abyte_cnt-1)<<3 +:8] <= spi_byte_in;
 			endcase
 		end
 	end

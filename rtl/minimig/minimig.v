@@ -202,6 +202,7 @@ module minimig
 	input [7:0] kbd_mouse_data,
 	input	_15khz,				//scandoubler disable
 	input no_csync,			// separate sync always
+	input [63:0] rtc,
 	output pwrled,				//power led
 	inout	msdat,				//PS2 mouse data
 	inout	msclk,				//PS2 mouse clk
@@ -268,6 +269,7 @@ wire		[15:0] user_data_out;	//user IO data out
 wire		[15:0] gary_data_out;	//data out from memory bus multiplexer
 wire		[15:0] gayle_data_out;	//Gayle data out
 wire		[15:0] cia_data_out;	//cia A+B data bus out
+wire		[15:0] rtc_data_out;  //RTC data out
 wire		[15:0] ar3_data_out;	//Action Replay data out
 
 //local signals for spi bus
@@ -309,6 +311,7 @@ wire		sel_cia;				//CIA address space
 wire		sel_reg;				//chip register select
 wire		sel_cia_a;				//cia A select
 wire		sel_cia_b;				//cia B select
+wire    sel_rtc;      // RTC select
 wire		int2;					//intterrupt 2
 wire		int3;					//intterrupt 3 
 wire		int6;					//intterrupt 6
@@ -965,6 +968,7 @@ gary GARY1
 	.sel_reg(sel_reg),
 	.sel_cia_a(sel_cia_a),
 	.sel_cia_b(sel_cia_b),
+	.sel_rtc(sel_rtc),
 	.sel_ide(sel_ide),
 	.sel_gayle(sel_gayle)
 );
@@ -1012,12 +1016,14 @@ minimig_syscontrol CONTROL1
 
 
 //-------------------------------------------------------------------------------------
+assign rtc_data_out = (sel_rtc && cpu_rd) ? {12'h000, rtc[{cpu_address_out[5:2], 2'b00} +:4]} : 16'h0000;
 
 //data multiplexer
 assign cpu_data_in[15:0] = gary_data_out[15:0]
 						 | cia_data_out[15:0]
 						 | gayle_data_out[15:0]
-             | cart_data_out[15:0];
+             | cart_data_out[15:0]
+             | rtc_data_out;
 
 assign custom_data_out[15:0] = agnus_data_out[15:0]
 							 | paula_data_out[15:0]
