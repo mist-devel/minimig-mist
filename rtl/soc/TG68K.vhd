@@ -48,7 +48,6 @@ entity TG68K is
     wrd           : out     std_logic;
     ena7RDreg     : in      std_logic:='1';
     ena7WRreg     : in      std_logic:='1';
-    enaWRreg      : in      std_logic:='1';
     fromram       : in      std_logic_vector(15 downto 0);
     ramready      : in      std_logic:='0';
     cpu           : in      std_logic_vector(1 downto 0);
@@ -322,7 +321,7 @@ PROCESS (clk, fastramcfg, cpuaddr, cpu) BEGIN
       z3ram_base<=X"01";
       --eth_cfgd <='0';
       --eth_base<=X"02";
-    ELSIF enaWRreg='1' THEN
+    ELSIF clkena_in='1' THEN
       IF sel_autoconfig='1' AND state="11"AND uds_in='0' AND clkena='1' THEN
         CASE cpuaddr(6 downto 1) IS
           WHEN "100100" => -- Register 0x48 - config
@@ -378,7 +377,7 @@ PROCESS (clk) BEGIN
   END IF;
 END PROCESS;
 
-clkena <= '1' WHEN (clkena_in='1' AND enaWRreg='1' AND (state="01" OR (ena7RDreg='1' AND clkena_e='1') OR ramready='1')) ELSE '0';
+clkena <= '1' WHEN (clkena_in='1' AND (state="01" OR (ena7RDreg='1' AND clkena_e='1') OR ramready='1')) ELSE '0';
 
 PROCESS (clk) BEGIN
   IF rising_edge(clk) THEN

@@ -98,7 +98,7 @@ wire           tg68_lds;
 wire           tg68_rw;
 wire           tg68_ena7RD;
 wire           tg68_ena7WR;
-wire           tg68_enaWR;
+wire           tg68_ena28;
 wire [ 16-1:0] tg68_cout;
 wire           tg68_cpuena;
 wire [  4-1:0] cpu_config;
@@ -258,7 +258,7 @@ amiga_clk amiga_clk (
 TG68K tg68k (
   .clk          (clk_114          ),
   .reset        (tg68_rst         ),
-  .clkena_in    (1'b1             ),
+  .clkena_in    (tg68_ena28       ),
   .IPL          (tg68_IPL         ),
   .dtack        (tg68_dtack       ),
   .vpa          (1'b1             ),
@@ -274,7 +274,6 @@ TG68K tg68k (
   .wrd          (                 ),
   .ena7RDreg    (tg68_ena7RD      ),
   .ena7WRreg    (tg68_ena7WR      ),
-  .enaWRreg     (tg68_enaWR       ),
   .fromram      (tg68_cout        ),
   .ramready     (tg68_cpuena      ),
   .cpu          (cpu_config[1:0]  ),
@@ -339,7 +338,7 @@ sdram_ctrl sdram (
   .chip48       (chip48           ),
   .reset_out    (reset_out        ),
   .enaRDreg     (                 ),
-  .enaWRreg     (tg68_enaWR       ),
+  .enaWRreg     (tg68_ena28       ),
   .ena7RDreg    (tg68_ena7RD      ),
   .ena7WRreg    (tg68_ena7WR      )
 );
