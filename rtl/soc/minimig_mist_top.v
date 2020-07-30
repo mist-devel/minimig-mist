@@ -107,9 +107,9 @@ wire           turbochipram;
 wire           turbokick;
 wire           cache_inhibit;
 wire [ 32-1:0] tg68_cad;
-wire [  6-1:0] tg68_cpustate;
+wire [    1:0] tg68_cpustate;
+wire           tg68_ramcs;
 wire           tg68_nrst_out;
-//wire           tg68_cdma;
 wire           tg68_clds;
 wire           tg68_cuds;
 wire [  4-1:0] tg68_CACR_out;
@@ -288,9 +288,9 @@ TG68K tg68k (
 //.ovr          (tg68_ovr         ),
   .ramaddr      (tg68_cad         ),
   .cpustate     (tg68_cpustate    ),
+  .ramcs        (tg68_ramcs       ),
   .nResetOut    (tg68_nrst_out    ),
   .skipFetch    (                 ),
-//  .cpuDMA       (tg68_cdma        ),
   .ramlds       (tg68_clds        ),
   .ramuds       (tg68_cuds        ),
   .CACR_out     (tg68_CACR_out    ),
@@ -322,7 +322,7 @@ sdram_ctrl sdram (
   .cpuU         (tg68_cuds        ),
   .cpuL         (tg68_clds        ),
   .cpustate     (tg68_cpustate    ),
-//  .cpu_dma      (tg68_cdma        ),
+  .cpuRAMcs     (tg68_ramcs       ),
   .chipWR       (ram_data         ),
   .chipAddr     ({1'b0, ram_address[22:1]}),
   .chipU        (_ram_bhe         ),

@@ -65,10 +65,10 @@ module sdram_ctrl(
   output wire [ 48-1:0] chip48,
   // cpu
   input  wire    [24:1] cpuAddr,
-  input  wire [  6-1:0] cpustate,
+  input  wire [    1:0] cpustate,
   input  wire           cpuL,
   input  wire           cpuU,
-  input  wire           cpu_dma,
+  input  wire           cpuRAMcs,
   input  wire [ 16-1:0] cpuWR,
   output wire [ 16-1:0] cpuRD,
   output reg            enaWRreg,
@@ -142,7 +142,6 @@ reg  [ 4-1:0] zvalid;
 reg           zequal;
 reg  [ 2-1:0] hostStated;
 reg  [16-1:0] hostRDd;
-reg           cena;
 wire [64-1:0] ccache;
 wire [25-1:0] ccache_addr;
 wire          ccache_fill;
@@ -358,7 +357,7 @@ cpu_cache_new cpu_cache (
   .cache_en         (1'b1),                         // cache enable
   .cpu_cache_ctrl   (cpu_cache_ctrl),               // CPU cache control
   .cache_inhibit    (cache_inhibit),                // cache inhibit
-  .cpu_cs           (!cpustate[2]),                 // cpu activity
+  .cpu_cs           (!cpuRAMcs),                    // cpu activity
   .cpu_adr          ({cpuAddr_mangled, 1'b0}),      // cpu address
   .cpu_bs           ({!cpuU, !cpuL}),               // cpu byte selects
   .cpu_we           (&cpustate[1:0]),               // cpu write
@@ -387,7 +386,7 @@ always @ (posedge sysclk) begin
     case(writebuffer_state)
       WAITING : begin
         // CPU write cycle, no cycle already pending
-        if(cpustate[2:0] == 3'b011) begin
+        if({cpuRAMcs, cpustate[1:0]} == 3'b011) begin
           writebufferAddr <= #1 cpuAddr_mangled[24:1];
           writebufferWR   <= #1 cpuWR;
           writebuffer_dqm <= #1 {cpuU, cpuL};
@@ -415,14 +414,14 @@ always @ (posedge sysclk) begin
         writebuffer_state <= #1 WAITING;
       end
     endcase
-    if(cpustate[2]) begin
+    if(cpuRAMcs) begin
       // the CPU has unpaused, so clear the ack signal
       writebuffer_ena <= #1 1'b0;
     end
   end
 end
 
-assign cpuena = cena || ccachehit || writebuffer_ena;
+assign cpuena = ccachehit || writebuffer_ena;
 assign readcache_fill = (cache_fill_1 && slot1_type == CPU_READCACHE) || (cache_fill_2 && slot2_type == CPU_READCACHE);
 
 
@@ -614,9 +613,7 @@ always @ (posedge sysclk) begin
   dqm                         <= #1 2'b00;
   cache_fill_1                <= #1 1'b0;
   cache_fill_2                <= #1 1'b0;
-  if(cpustate[5]) begin
-    cena <= 1'b0;
-  end
+
   if(!init_done) begin
     if(sdram_state == ph1) begin
       case(initstate)
@@ -800,7 +797,7 @@ always @ (posedge sysclk) begin
             writebuffer_hold  <= #1 1'b1; // let the write buffer know we're about to write
           end
           // request from read cache
-          else if(cache_req && |cpuAddr[24:23] && (slot1_type == IDLE || slot1_bank != cpuAddr_mangled[24:23])) begin // reserve bank 0 for slot 1
+          else if(cache_req && |cpuAddr_mangled[24:23] && (slot1_type == IDLE || slot1_bank != cpuAddr_mangled[24:23])) begin // reserve bank 0 for slot 1
             slot2_type        <= #1 CPU_READCACHE;
             sdaddr            <= #1 cpuAddr_mangled[22:10];
             ba                <= #1 cpuAddr_mangled[24:23];

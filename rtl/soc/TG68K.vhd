@@ -61,9 +61,10 @@ entity TG68K is
     cache_inhibit : out     std_logic;
 --    ovr           : in      std_logic;
     ramaddr       : out     std_logic_vector(31 downto 0);
-    cpustate      : out     std_logic_vector(5 downto 0);
+    cpustate      : out     std_logic_vector(1 downto 0);
     nResetOut     : buffer  std_logic;
     skipFetch     : buffer  std_logic;
+    ramcs         : out     std_logic;
 --    cpuDMA        : buffer  std_logic;
     ramlds        : out     std_logic;
     ramuds        : out     std_logic;
@@ -116,7 +117,6 @@ SIGNAL slower           : std_logic_vector(3 downto 0);
 TYPE   sync_states      IS (sync0, sync1, sync2, sync3, sync4, sync5, sync6, sync7, sync8, sync9);
 SIGNAL sync_state       : sync_states;
 SIGNAL datatg68         : std_logic_vector(15 downto 0);
-SIGNAL ramcs            : std_logic;
 
 SIGNAL z2ram_ena        : std_logic;
 SIGNAL z3ram_base       : std_logic_vector(7 downto 0);
@@ -189,7 +189,7 @@ BEGIN
 
   ramcs <= (NOT sel_ram) or slower(0);-- OR (state(0) AND NOT state(1));
 --  cpuDMA <= sel_ram;
-  cpustate <= clkena&slower(1 downto 0)&ramcs&state;
+  cpustate <= state;
   ramlds <= lds_in;
   ramuds <= uds_in;
 
