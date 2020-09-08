@@ -103,8 +103,8 @@ module paula
 	//audio outputs
 	output	left,					//audio bitstream left
 	output	right,					//audio bitstream right
-	output	[14:0]ldata,			//left DAC data
-	output	[14:0]rdata, 			//right DAC data
+	output	[8:0]ldata,			//left DAC data
+	output	[8:0]rdata, 			//right DAC data
   // system configuration
 	input	[1:0] floppy_drives,	//number of extra floppy drives
   // direct sector read from SD card
@@ -315,10 +315,20 @@ paula_audio ad1
 	.audpen(audpen),
 	.dmal(audio_dmal),
 	.dmas(audio_dmas),
-	.left(left),
-	.right(right),	
 	.ldata(ldata),
 	.rdata(rdata)	
+);
+
+
+//instantiate sigma/delta modulator
+audio_sigmadelta dac
+(
+  .clk(clk),
+  .clk7_en (clk7_en),
+  .ldatasum(ldata),
+  .rdatasum(rdata),
+  .left(left),
+  .right(right)
 );
 
 

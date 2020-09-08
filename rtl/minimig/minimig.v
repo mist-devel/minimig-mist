@@ -229,10 +229,10 @@ module minimig
 	output	[7:0] green,		//green
 	output	[7:0] blue,			//blue
 	//audio
-	output	left,				//audio bitstream left
-	output	right,				//audio bitstream right
-	output	[14:0]ldata,			//left DAC data
-	output	[14:0]rdata, 			//right DAC data
+	output	left,         //audio bitstream left
+	output	right,        //audio bitstream right
+	output	[8:0]ldata,   //left DAC data
+	output	[8:0]rdata,   //right DAC data
 	//user i/o
   output  [3:0] cpu_config,
   output  [5:0] memcfg,

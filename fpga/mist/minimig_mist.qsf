@@ -49,7 +49,7 @@ set_global_assignment -name ENABLE_SIGNALTAP OFF
 set_global_assignment -name USE_SIGNALTAP_FILE out/cpu.stp
 set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
-set_global_assignment -name PHYSICAL_SYNTHESIS_EFFORT NORMAL
+set_global_assignment -name PHYSICAL_SYNTHESIS_EFFORT EXTRA
 set_global_assignment -name FMAX_REQUIREMENT "114 MHz"
 set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
@@ -70,7 +70,7 @@ set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_COLOR 2147039 -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 
-set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING OFF
 set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC_FOR_AREA ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_MAP_LOGIC_TO_MEMORY_FOR_AREA ON
 
@@ -351,6 +351,7 @@ set_global_assignment -name VERILOG_FILE ../../rtl/minimig/debug.v
 set_global_assignment -name VERILOG_FILE ../../rtl/soc/minimig_mist_top.v
 set_global_assignment -name VHDL_FILE ../../rtl/soc/TG68K.vhd
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/minimig.v
+set_global_assignment -name VERILOG_FILE ../../rtl/minimig/audio_sigmadelta.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/minimig_syscontrol.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/minimig_sram_bridge.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/minimig_m68k_bridge.v
@@ -391,8 +392,6 @@ set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_intcontroller.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_floppy.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_floppy_fifo.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_audio.v
-set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_audio_volume.v
-set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_audio_sigmadelta.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_audio_mixer.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/paula_audio_channel.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/cart.v
@@ -428,4 +427,7 @@ set_global_assignment -name SIGNALTAP_FILE cpu_cache.stp
 set_global_assignment -name SIGNALTAP_FILE cpu_debug.stp
 set_global_assignment -name SIGNALTAP_FILE cpu_nmi.stp
 set_global_assignment -name SIGNALTAP_FILE out/cpu.stp
+set_global_assignment -name SIGNALTAP_FILE out/sync.stp
+set_global_assignment -name SIGNALTAP_FILE out/osd.stp
+set_global_assignment -name SIGNALTAP_FILE out/tg68k.stp
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

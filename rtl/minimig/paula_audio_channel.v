@@ -1,4 +1,5 @@
 //This module handles a single amiga audio channel. attached modes are not supported
+// 2020-09-07: pwm controlled volume gated sample output implemented by OKK
 
 module paula_audio_channel
 (
@@ -10,7 +11,6 @@ module paula_audio_channel
   input  dmaena,          //dma enable
   input  [3:1] reg_address_in,    //register address input
   input   [15:0] data,       //bus data input
-  output  [6:0] volume,      //channel volume output
   output  [7:0] sample,      //channel sample output
   output  intreq,          //interrupt request
   input  intpen,          //interrupt pending input
@@ -36,7 +36,11 @@ reg    [2:0] audio_state;    //audio current state
 reg    [2:0] audio_next;     //audio next state
 
 wire  datwrite;        //data register is written
-reg    volcntrld;        //not used
+
+reg    [5:0] volcnt;	 // pwm volume counter
+wire   volcount;	 // increase pwm volume counter
+reg    volcntrld;        //oh yes it IS used!!!
+wire   volgate;		 // pwm pulse for gating sample output
 
 reg    pbufld1;        //load output sample from sample buffer
 
@@ -63,8 +67,8 @@ reg    intreq2;        //buffered interrupt request
 reg    dmasen;          //pointer register reloading request
 reg    penhi;          //enable high byte of sample buffer
 
-reg silence;  // AMR: disable audio if repeat length is 1
-reg silence_d;  // AMR: disable audio if repeat length is 1
+reg silence = 0;  // AMR: disable audio if repeat length is 1
+reg silence_d = 0;  // AMR: disable audio if repeat length is 1
 reg dmaena_d;
 
 
@@ -127,6 +131,22 @@ assign  AUDxIP = intpen;  //audio interrupt pending
 assign intreq = AUDxIR;    //audio interrupt request
 
 
+//volume counter
+always @(posedge clk) begin
+  if (clk7_en) begin
+    if (reset && cck) volcnt <= 6'h00;
+
+    else if (volcntrld && cck)//load volume counter from audio volume register
+      volcnt[5:0] <= 6'h00; //audvol[6:0];
+    else if (volcount && cck)//volume counter count up
+      volcnt[5:0] <= volcnt[5:0] + 6'd1;
+  end
+end
+
+assign volcount = 1'd1;
+assign volgate = (volcnt < audvol);
+
+
 //period counter
 always @(posedge clk) begin
   if (clk7_en) begin
@@ -177,10 +197,7 @@ always @(posedge clk) begin
 end
 
 //assign sample[7:0] = penhi ? datbuf[15:8] : datbuf[7:0];
-assign sample[7:0] = silence ? 8'b0 : (penhi ? datbuf[15:8] : datbuf[7:0]);
-
-//volume output
-assign volume[6:0] = audvol[6:0];
+assign sample[7:0] = (silence | !volgate ? 8'b0 : (penhi ? datbuf[15:8] : datbuf[7:0])); // pwm volume gated sample output
 
 
 //dma request logic
