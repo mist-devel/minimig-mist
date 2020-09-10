@@ -345,6 +345,7 @@ set_global_assignment -name SYNCHRONIZER_IDENTIFICATION AUTO
 set_global_assignment -name TIMEQUEST_DO_CCPP_REMOVAL ON
 set_global_assignment -name SEED 1
 set_global_assignment -name OPTIMIZE_POWER_DURING_FITTING "NORMAL COMPILATION"
+set_global_assignment -name VHDL_FILE ../../rtl/mist/dac.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/mist/video_mixer.sv
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/rga_decode.v
 set_global_assignment -name VERILOG_FILE ../../rtl/minimig/debug.v

@@ -129,8 +129,8 @@ wire           _ram_oe;       // sram output enable
 wire           _15khz;        // scandoubler disable
 wire           joy_emu_en;    // joystick emulation enable
 wire           sdo;           // SPI data output
-wire [ 15-1:0] ldata;         // left DAC data
-wire [ 15-1:0] rdata;         // right DAC data
+wire [  9-1:0] ldata;         // left DAC data
+wire [  9-1:0] rdata;         // right DAC data
 wire           audio_left;
 wire           audio_right;
 wire           vs;
@@ -237,6 +237,19 @@ video_mixer video_mixer
 	.VGA_B  (mixer_blue )
 );
 
+dac #(9) ldac (
+  .clk_i        (clk_28   ),
+	.res_n_i      (1'b1     ),
+	.dac_i        ({~ldata[8], ldata[7:0]}),
+	.dac_o        (AUDIO_L  )
+);
+
+dac #(9) rdac (
+  .clk_i        (clk_28   ),
+	.res_n_i      (1'b1     ),
+	.dac_i        ({~rdata[8], rdata[7:0]}),
+	.dac_o        (AUDIO_R  )
+);
 
 //// amiga clocks ////
 amiga_clk amiga_clk (
@@ -449,10 +462,10 @@ minimig minimig (
   .green        (green            ),  // green
   .blue         (blue             ),  // blue
   //audio
-  .left         (AUDIO_L          ),  // audio bitstream left
-  .right        (AUDIO_R          ),  // audio bitstream right
-  .ldata        (                 ),  // left DAC data
-  .rdata        (                 ),  // right DAC data
+  .left         (                 ),  // audio bitstream left
+  .right        (                 ),  // audio bitstream right
+  .ldata        (ldata            ),  // left DAC data
+  .rdata        (rdata            ),  // right DAC data
   //user i/o
   .cpu_config   (cpu_config       ), // CPU config
   .memcfg       (memcfg           ), // memory config
